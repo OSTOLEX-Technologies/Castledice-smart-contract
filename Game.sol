@@ -16,6 +16,10 @@ contract BoardGame {
         countRooms = 0;
     }
 
+    modifier onlyActivePlayer(uint roomId) {
+        require(rooms[roomId].isPlayerActive[msg.sender], "You are not a player of this room");
+    }
+
     function createRoom() external {
         // todo
     }
@@ -24,7 +28,11 @@ contract BoardGame {
         // todo
     }
 
-    function makeRoom() external {
-        // todo
+    function makeMove(uint roomId, uint row, uint col) external onlyActivePlayer(roomId){
+        Room storage room = rooms[roomId];
+
+        // todo: impement game logic;
+
+        room.currentPlayerIndex ^= 1;
     }
 }
