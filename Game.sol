@@ -46,8 +46,12 @@ contract CastlediceGame {
         room.randomParameter = uint256(keccak256(abi.encodePacked(
             room.players[0], 
             room.players[1],
-            countRooms
+            countRooms,
+            blockhash(block.number - 1)
         )));
+
+        updateCurrentPlayerMoves(countRooms);
+
         return countRooms;
     }
 
@@ -79,9 +83,13 @@ contract CastlediceGame {
         return room.currentPlayerMoves;
     }
 
+    function validateMove(uint256 roomId) internal {
+        
+    }
+
     function updateRandomValue(uint256 roomId) internal {
         Room storage room = rooms[roomId];
-        room.randomParameter = uint256(keccak256(abi.encodePacked(room.randomParameter)));
+        room.randomParameter = uint256(keccak256(abi.encodePacked(room.randomParameter, block.timestamp)));
     }
 
     function updateCurrentPlayer(uint256 roomId) internal {
