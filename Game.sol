@@ -23,7 +23,7 @@ contract CastlediceGame {
     }
 
     modifier onlyActivePlayer(uint roomId) {
-        playerIndex = rooms[roomId].currentPlayerIndex;
+        uint8 playerIndex = rooms[roomId].currentPlayerIndex;
 
         require(rooms[roomId].players[playerIndex] == msg.sender,
                 "You are not a player of this room");
@@ -44,7 +44,7 @@ contract CastlediceGame {
     }
 
     // returns amount of moves left for the player
-    function makeMove(uint roomId, uint row, uint col) external onlyActivePlayer(roomId) returns(uint8){
+    function makeMove(uint roomId, uint8 row, uint8 col) external onlyActivePlayer(roomId) returns(uint8){
         Room storage room = rooms[roomId];
 
         BoardState currentCellState = room.boardState[row][col];
@@ -58,11 +58,11 @@ contract CastlediceGame {
         if (currentCellState == BoardState.FREE) {
             require(room.currentPlayerMoves >= 1, "You need at least 1 move");
             room.currentPlayerMoves -= 1;
-            room[row][col] = currentPlayerColor;
+            room.boardState[row][col] = currentPlayerColor;
         } else {
             require(room.currentPlayerMoves >= 3, "You need at least 3 moves left");
             room.currentPlayerMoves -= 3;
-            room[row][col] = currentPlayerColor;
+            room.boardState[row][col] = currentPlayerColor;
             // TODO: check *tails
         }
         return room.currentPlayerMoves;
