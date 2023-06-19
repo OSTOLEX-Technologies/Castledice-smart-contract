@@ -6,7 +6,7 @@ pragma solidity ^0.6.0;
 contract CastlediceGame {
     uint8 constant public FIELD_HEIGHT = 10;
     uint8 constant public FIELD_WIDTH = 10;    
-    event GameOver(uint256 roomId, address winner);
+    event FinishedGames(uint256 roomId, address winner);
 
     struct Room {
         address[] players;
@@ -68,13 +68,28 @@ contract CastlediceGame {
         return room.currentPlayerMoves;
     }
 
+    function isGameFinished(uint256 roomId) public view returns (bool) {
+        Room storage room = rooms[roomId];
+        return room.boardState[0][0] == BoardState.RED || room.boardState[9][9] == BoardState.BLUE;            
+    }
+
+    function getGameWinner(uint256 roomId) public view returns (address) {
+        Room storage room = rooms[roomId];
+        if (room.boardState[0][0] == BoardState.RED) {
+            return room.players[1];
+        }
+        if (room.boardState[9][9] == BoardState.BLUE) {
+            return room.players[0];
+        }
+        revert("Game is not finished, there is no winner");
+    }
+
     function getCurrentPlayerMovesLeft(uint256 roomId) public view returns (uint8) {
         return rooms[roomId].currentPlayerMoves;
     }
 
-    function getCurrentPlayerAddress(uint256 roomId) public view returns (address) {
-        Room storage room = rooms[roomId];
-        return room.players[room.currentPlayerIndex];
+    function getCurrentPlayerIndex(uint256 roomId) public view returns (uint8) {
+        return rooms[roomId].currentPlayerIndex;
     }
     
 }
