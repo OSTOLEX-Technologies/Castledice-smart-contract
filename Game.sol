@@ -67,6 +67,16 @@ contract CastlediceGame {
         }
         return room.currentPlayerMoves;
     }
+
+    function getCurrentPlayerMovesLeft(uint256 roomId) public view returns (uint8) {
+        return rooms[roomId].currentPlayerMoves;
+    }
+
+    function getCurrentPlayerAddress(uint256 roomId) public view returns (address) {
+        Room storage room = rooms[roomId];
+        return room.players[room.currentPlayerIndex];
+    }
+    
 }
 
 enum BoardState {
