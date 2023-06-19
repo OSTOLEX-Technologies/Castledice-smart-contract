@@ -6,24 +6,26 @@ pragma solidity ^0.6.0;
 contract CastlediceGame {
     uint8 constant public FIELD_HEIGHT = 10;
     uint8 constant public FIELD_WIDTH = 10;    
+    event GameOver(uint256 roomId, address winner);
 
     struct Room {
         address[] players;
-        uint currentPlayerIndex;
+        uint8 currentPlayerIndex;
         mapping(uint8 => mapping(uint8 => BoardState)) boardState;
         uint8 currentPlayerMoves;
     }
 
-    mapping(uint => Room) public rooms;
-    uint public countRooms;
+    mapping(uint256 => Room) public rooms;
+    uint256 public countRooms;
 
     constructor() public {
         countRooms = 0;
     }
 
     modifier onlyActivePlayer(uint roomId) {
-        require(rooms[roomId].players[0] == msg.sender ||
-                rooms[roomId].players[1] == msg.sender , 
+        playerIndex = rooms[roomId].currentPlayerIndex;
+
+        require(rooms[roomId].players[playerIndex] == msg.sender,
                 "You are not a player of this room");
         _;
     }
@@ -34,15 +36,36 @@ contract CastlediceGame {
         room.players = players;
         for (uint8 i = 0; i < FIELD_HEIGHT; i++) {
             for (uint8 j = 0; j < FIELD_WIDTH; j++) {
-                room.boardState[i][j] = BoardState.FREE; // 0 for FREE, 1 for RED, 2 for BLUE
+                room.boardState[i][j] = BoardState.FREE;
             }
         }
         room.boardState[0][0] = BoardState.BLUE;
         room.boardState[9][9] = BoardState.RED;
     }
 
-    function makeMove(uint roomId, uint row, uint col) external onlyActivePlayer(roomId){
-        
+    // returns amount of moves left for the player
+    function makeMove(uint roomId, uint row, uint col) external onlyActivePlayer(roomId) returns(uint8){
+        Room storage room = rooms[roomId];
+
+        BoardState currentCellState = room.boardState[row][col];
+        BoardState currentPlayerColor = BoardState.RED;
+        if (room.currentPlayerIndex == 1) {
+            currentPlayerColor = BoardState.BLUE;
+        }
+
+        require(currentCellState != currentPlayerColor, "You cannot make move on your cell");
+
+        if (currentCellState == BoardState.FREE) {
+            require(room.currentPlayerMoves >= 1, "You need at least 1 move");
+            room.currentPlayerMoves -= 1;
+            room[row][col] = currentPlayerColor;
+        } else {
+            require(room.currentPlayerMoves >= 3, "You need at least 3 moves left");
+            room.currentPlayerMoves -= 3;
+            room[row][col] = currentPlayerColor;
+            // TODO: check *tails
+        }
+        return room.currentPlayerMoves;
     }
 }
 
