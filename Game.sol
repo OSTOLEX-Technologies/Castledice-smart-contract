@@ -13,6 +13,7 @@ contract CastlediceGame {
         uint8 currentPlayerIndex;
         mapping(uint8 => mapping(uint8 => BoardState)) boardState;
         uint8 currentPlayerMoves;
+        uint256 randomParameter;
     }
 
     mapping(uint256 => Room) public rooms;
@@ -30,7 +31,7 @@ contract CastlediceGame {
         _;
     }
 
-    function createRoom(address[] calldata players) external {
+    function createRoom(address[] calldata players) external returns (uint256) {
         countRooms++;
         Room storage room = rooms[countRooms];
         room.players = players;
@@ -41,6 +42,13 @@ contract CastlediceGame {
         }
         room.boardState[0][0] = BoardState.BLUE;
         room.boardState[9][9] = BoardState.RED;
+        
+        room.randomParameter = uint256(keccak256(abi.encodePacked(
+            room.players[0], 
+            room.players[1],
+            countRooms
+        )));
+        return countRooms;
     }
 
     // returns amount of moves left for the player
@@ -63,9 +71,30 @@ contract CastlediceGame {
             require(room.currentPlayerMoves >= 3, "You need at least 3 moves left");
             room.currentPlayerMoves -= 3;
             room.boardState[row][col] = currentPlayerColor;
-            // TODO: check *tails
+            // TODO: check tails
+        }
+        if (room.currentPlayerMoves == 0) {
+            updateCurrentPlayer(roomId);
         }
         return room.currentPlayerMoves;
+    }
+
+    function updateRandomValue(uint256 roomId) internal {
+        Room storage room = rooms[roomId];
+        room.randomParameter = uint256(keccak256(abi.encodePacked(room.randomParameter)));
+    }
+
+    function updateCurrentPlayer(uint256 roomId) internal {
+        Room storage room = rooms[roomId];
+        require(room.currentPlayerMoves == 0, "Previous player still has moves");
+        updateCurrentPlayerMoves(roomId);
+        room.currentPlayerIndex ^= 1;
+    }
+
+    function updateCurrentPlayerMoves(uint roomId) internal {
+        Room storage room = rooms[roomId];
+        updateRandomValue(roomId);
+        room.currentPlayerMoves = uint8((room.randomParameter % 5) + 1);
     }
 
     function isGameFinished(uint256 roomId) public view returns (bool) {
@@ -99,4 +128,3 @@ enum BoardState {
     RED,
     BLUE
 }
-// board state 
