@@ -7,6 +7,7 @@ contract CastlediceGame {
     uint8 constant public FIELD_HEIGHT = 10;
     uint8 constant public FIELD_WIDTH = 10;    
     event FinishedGames(uint256 roomId, address winner);
+    BoardState[] playerColors = [BoardState.BLUE, BoardState.RED];
 
     struct Room {
         address[] players;
@@ -27,7 +28,7 @@ contract CastlediceGame {
         uint8 playerIndex = rooms[roomId].currentPlayerIndex;
 
         require(rooms[roomId].players[playerIndex] == msg.sender,
-                "You are not a player of this room");
+                "It is not your turn to make a move");
         _;
     }
 
@@ -56,25 +57,22 @@ contract CastlediceGame {
     }
 
     // returns amount of moves left for the player
-    function makeMove(uint roomId, uint8 row, uint8 col) external onlyActivePlayer(roomId) returns(uint8){
+    function makeMove(uint roomId, uint8 row, uint8 column) external onlyActivePlayer(roomId) returns(uint8){
         Room storage room = rooms[roomId];
 
-        BoardState currentCellState = room.boardState[row][col];
-        BoardState currentPlayerColor = BoardState.RED;
-        if (room.currentPlayerIndex == 1) {
-            currentPlayerColor = BoardState.BLUE;
-        }
+        BoardState currentCellState = room.boardState[row][column];
+        BoardState currentPlayerColor = playerColors[room.currentPlayerIndex];
 
         require(currentCellState != currentPlayerColor, "You cannot make move on your cell");
-
+        validateMove(roomId, row, column);
         if (currentCellState == BoardState.FREE) {
             require(room.currentPlayerMoves >= 1, "You need at least 1 move");
             room.currentPlayerMoves -= 1;
-            room.boardState[row][col] = currentPlayerColor;
+            room.boardState[row][column] = currentPlayerColor;
         } else {
             require(room.currentPlayerMoves >= 3, "You need at least 3 moves left");
             room.currentPlayerMoves -= 3;
-            room.boardState[row][col] = currentPlayerColor;
+            room.boardState[row][column] = currentPlayerColor;
             // TODO: check tails
         }
         if (room.currentPlayerMoves == 0) {
@@ -83,8 +81,35 @@ contract CastlediceGame {
         return room.currentPlayerMoves;
     }
 
-    function validateMove(uint256 roomId) internal {
-        
+    function validateMove(uint256 roomId, uint8 row, uint8 column) internal view {
+        Room storage room = rooms[roomId];
+
+        bool nearCellPresent = false;
+        BoardState currentPlayerColor = playerColors[room.currentPlayerIndex];
+
+        for(int8 horizontalShift = -1; horizontalShift <= 1; horizontalShift++) {
+            for(int8 verticalShift = -1; verticalShift <= 1; verticalShift++) {
+                int8 currRow = int8(row) + verticalShift;
+                int8 currColumn = int8(column) + horizontalShift;
+                if (currRow < 0 || currColumn < 0) {
+                    continue;
+                }
+                if (currColumn >= int8(FIELD_HEIGHT) || currColumn >= int8(FIELD_WIDTH)) {
+                    continue;
+                }
+                uint8 uCurrRow = uint8(currRow);
+                uint8 uCurrColumn = uint8(currColumn);
+
+                if (uCurrRow == row && uCurrColumn == column) {
+                    continue;
+                }
+                if (room.boardState[uCurrRow][uCurrColumn] == currentPlayerColor) {
+                    nearCellPresent = true;
+                    break;
+                }
+            }
+        }
+        require(nearCellPresent, "Move is invalid: there is no cell with the same color nearby");
     }
 
     function updateRandomValue(uint256 roomId) internal {
