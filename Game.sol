@@ -2,17 +2,22 @@
 
 pragma solidity ^0.6.0;
 
-
 contract CastlediceGame {
     uint8 constant public FIELD_HEIGHT = 10;
-    uint8 constant public FIELD_WIDTH = 10;    
+    uint8 constant public FIELD_WIDTH = 10;  
+    uint8 constant STANDART_MOVE_COST = 1;
+    uint8 constant STRIKE_MOVE_COST = 3;
+    Position bluePlayerStart = Position(0, 0);
+    Position redPlayerStart = Position(9, 9);
+
     event FinishedGames(uint256 roomId, address winner);
     BoardState[] playerColors = [BoardState.BLUE, BoardState.RED];
 
     struct Room {
         address[] players;
         uint8 currentPlayerIndex;
-        mapping(uint8 => mapping(uint8 => BoardState)) boardState;
+        // mapping(uint8 => mapping(uint8 => BoardState)) boardState;
+        BoardState[FIELD_HEIGHT][FIELD_WIDTH] boardState;
         uint8 currentPlayerMoves;
         uint256 randomParameter;
     }
@@ -41,8 +46,8 @@ contract CastlediceGame {
                 room.boardState[i][j] = BoardState.FREE;
             }
         }
-        room.boardState[0][0] = BoardState.BLUE;
-        room.boardState[9][9] = BoardState.RED;
+        room.boardState[bluePlayerStart.row][bluePlayerStart.column] = BoardState.BLUE;
+        room.boardState[redPlayerStart.row][redPlayerStart.column] = BoardState.RED;
         
         room.randomParameter = uint256(keccak256(abi.encodePacked(
             room.players[0], 
@@ -66,12 +71,12 @@ contract CastlediceGame {
         require(currentCellState != currentPlayerColor, "You cannot make move on your cell");
         validateMove(roomId, row, column);
         if (currentCellState == BoardState.FREE) {
-            require(room.currentPlayerMoves >= 1, "You need at least 1 move");
-            room.currentPlayerMoves -= 1;
+            require(room.currentPlayerMoves >= STANDART_MOVE_COST, "You don`t have enough moves left");
+            room.currentPlayerMoves -= STANDART_MOVE_COST;
             room.boardState[row][column] = currentPlayerColor;
         } else {
-            require(room.currentPlayerMoves >= 3, "You need at least 3 moves left");
-            room.currentPlayerMoves -= 3;
+            require(room.currentPlayerMoves >= STRIKE_MOVE_COST, "You don`t have enough moves left");
+            room.currentPlayerMoves -= STRIKE_MOVE_COST;
             room.boardState[row][column] = currentPlayerColor;
             // TODO: check tails
         }
@@ -112,6 +117,19 @@ contract CastlediceGame {
         require(nearCellPresent, "Move is invalid: there is no cell with the same color nearby");
     }
 
+    function getBoardArray(uint256 roomId) external view returns (uint8[] memory) {
+        Room storage room = rooms[roomId];
+        uint8[] memory result = new uint8[](FIELD_HEIGHT * FIELD_WIDTH);
+        for(uint8 row = 0; row < FIELD_HEIGHT; row++) {
+            for(uint8 col = 0; col < FIELD_WIDTH; col++) {
+                result[row * FIELD_WIDTH + col] = uint8(room.boardState[row][col]);
+            }
+        }
+        return result;
+    }
+
+
+
     function updateRandomValue(uint256 roomId) internal {
         Room storage room = rooms[roomId];
         room.randomParameter = uint256(keccak256(abi.encodePacked(room.randomParameter, block.timestamp)));
@@ -137,10 +155,10 @@ contract CastlediceGame {
 
     function getGameWinner(uint256 roomId) public view returns (address) {
         Room storage room = rooms[roomId];
-        if (room.boardState[0][0] == BoardState.RED) {
+        if (room.boardState[bluePlayerStart.row][bluePlayerStart.column] == BoardState.RED) {
             return room.players[1];
         }
-        if (room.boardState[9][9] == BoardState.BLUE) {
+        if (room.boardState[redPlayerStart.row][redPlayerStart.column] == BoardState.BLUE) {
             return room.players[0];
         }
         revert("Game is not finished, there is no winner");
@@ -158,6 +176,12 @@ contract CastlediceGame {
 
 enum BoardState {
     FREE,
+    BLUE,
     RED,
-    BLUE
+    TREE    
+}
+
+struct Position {
+    uint8 row;
+    uint8 column;
 }
