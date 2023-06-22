@@ -3,10 +3,16 @@
 pragma solidity ^0.6.0;
 
 contract CastlediceGame {
-    uint8 constant public FIELD_HEIGHT = 10;
-    uint8 constant public FIELD_WIDTH = 10;  
-    uint8 constant STANDART_MOVE_COST = 1;
-    uint8 constant STRIKE_MOVE_COST = 3;
+    uint256 constant public FIELD_HEIGHT = 10;
+    uint256 constant public FIELD_WIDTH = 10;  
+    uint256 constant STANDART_MOVE_COST = 1;
+    uint256 constant STRIKE_MOVE_COST = 3;
+    uint256 constant TREE_RANGE_MIN = 2;
+    uint256 constant TREE_RANGE_MAX = 2;
+    uint256 constant TREES_MIN_AMOUNT = 1;
+    uint256 constant TREES_MAX_AMOUNT = 5;
+    
+
     Position bluePlayerStart = Position(0, 0);
     Position redPlayerStart = Position(9, 9);
 
@@ -15,10 +21,10 @@ contract CastlediceGame {
 
     struct Room {
         address[] players;
-        uint8 currentPlayerIndex;
-        // mapping(uint8 => mapping(uint8 => BoardState)) boardState;
+        uint256 currentPlayerIndex;
+        // mapping(uint256 => mapping(uint256 => BoardState)) boardState;
         BoardState[FIELD_HEIGHT][FIELD_WIDTH] boardState;
-        uint8 currentPlayerMoves;
+        uint256 currentPlayerMoves;
         uint256 randomParameter;
     }
 
@@ -30,7 +36,7 @@ contract CastlediceGame {
     }
 
     modifier onlyActivePlayer(uint roomId) {
-        uint8 playerIndex = rooms[roomId].currentPlayerIndex;
+        uint256 playerIndex = rooms[roomId].currentPlayerIndex;
 
         require(rooms[roomId].players[playerIndex] == msg.sender,
                 "It is not your turn to make a move");
@@ -41,8 +47,8 @@ contract CastlediceGame {
         countRooms++;
         Room storage room = rooms[countRooms];
         room.players = players;
-        for (uint8 i = 0; i < FIELD_HEIGHT; i++) {
-            for (uint8 j = 0; j < FIELD_WIDTH; j++) {
+        for (uint256 i = 0; i < FIELD_HEIGHT; i++) {
+            for (uint256 j = 0; j < FIELD_WIDTH; j++) {
                 room.boardState[i][j] = BoardState.FREE;
             }
         }
@@ -57,12 +63,36 @@ contract CastlediceGame {
         )));
 
         updateCurrentPlayerMoves(countRooms);
+        generateTrees(countRooms);
 
         return countRooms;
     }
 
-    // returns amount of moves left for the player
-    function makeMove(uint roomId, uint8 row, uint8 column) external onlyActivePlayer(roomId) returns(uint8){
+    function generateTrees(uint256 roomId) internal {
+        Room storage room = rooms[roomId];
+        uint8[] memory random = new uint8[](32);
+        uint256 currentRandom = 0;
+        updateRandomValue(roomId);
+
+        for (uint256 i = 0; i < 32; i++) {
+            random[i] = uint8((room.randomParameter >> (8 * (31 - i))) & 0xFF);
+        }
+        uint256 amountOfTrees = TREES_MIN_AMOUNT + (random[currentRandom++]) % TREES_MAX_AMOUNT;
+
+        for (uint256 i = 0; i < amountOfTrees; i++) {
+            Position memory treePosition = Position(
+                setRandomNumberInRange(random[currentRandom++], TREE_RANGE_MIN, TREE_RANGE_MAX),
+                setRandomNumberInRange(random[currentRandom++], TREE_RANGE_MIN, TREE_RANGE_MAX)
+                );
+            room.boardState[treePosition.row][treePosition.column] = BoardState.TREE;
+        }
+    }
+
+    function setRandomNumberInRange(uint8 random, uint256 minValue, uint256 maxValue) internal pure returns(uint8) {
+        return uint8(minValue) + (random % uint8(maxValue));
+    }
+
+    function makeMove(uint256 roomId, uint256 row, uint256 column) external onlyActivePlayer(roomId) returns(uint256){
         Room storage room = rooms[roomId];
 
         BoardState currentCellState = room.boardState[row][column];
@@ -78,7 +108,7 @@ contract CastlediceGame {
             require(room.currentPlayerMoves >= STRIKE_MOVE_COST, "You don`t have enough moves left");
             room.currentPlayerMoves -= STRIKE_MOVE_COST;
             room.boardState[row][column] = currentPlayerColor;
-            // TODO: check tails
+            removeTails(roomId, getOppositeColor(currentPlayerColor));
         }
         if (room.currentPlayerMoves == 0) {
             updateCurrentPlayer(roomId);
@@ -86,24 +116,31 @@ contract CastlediceGame {
         return room.currentPlayerMoves;
     }
 
-    function validateMove(uint256 roomId, uint8 row, uint8 column) internal view {
+    function getOppositeColor(BoardState color) internal pure returns(BoardState) {
+        if (color == BoardState.BLUE) {
+            return BoardState.RED;
+        }
+        return BoardState.BLUE;
+    }
+
+    function validateMove(uint256 roomId, uint256 row, uint256 column) internal view {
         Room storage room = rooms[roomId];
 
         bool nearCellPresent = false;
         BoardState currentPlayerColor = playerColors[room.currentPlayerIndex];
 
-        for(int8 horizontalShift = -1; horizontalShift <= 1; horizontalShift++) {
-            for(int8 verticalShift = -1; verticalShift <= 1; verticalShift++) {
-                int8 currRow = int8(row) + verticalShift;
-                int8 currColumn = int8(column) + horizontalShift;
+        for (int256 horizontalShift = -1; horizontalShift <= 1; horizontalShift++) {
+            for (int256 verticalShift = -1; verticalShift <= 1; verticalShift++) {
+                int256 currRow = int256(row) + verticalShift;
+                int256 currColumn = int256(column) + horizontalShift;
                 if (currRow < 0 || currColumn < 0) {
                     continue;
                 }
-                if (currColumn >= int8(FIELD_HEIGHT) || currColumn >= int8(FIELD_WIDTH)) {
+                if (currColumn >= int256(FIELD_HEIGHT) || currColumn >= int256(FIELD_WIDTH)) {
                     continue;
                 }
-                uint8 uCurrRow = uint8(currRow);
-                uint8 uCurrColumn = uint8(currColumn);
+                uint256 uCurrRow = uint256(currRow);
+                uint256 uCurrColumn = uint256(currColumn);
 
                 if (uCurrRow == row && uCurrColumn == column) {
                     continue;
@@ -120,8 +157,8 @@ contract CastlediceGame {
     function getBoardArray(uint256 roomId) external view returns (uint8[] memory) {
         Room storage room = rooms[roomId];
         uint8[] memory result = new uint8[](FIELD_HEIGHT * FIELD_WIDTH);
-        for(uint8 row = 0; row < FIELD_HEIGHT; row++) {
-            for(uint8 col = 0; col < FIELD_WIDTH; col++) {
+        for (uint256 row = 0; row < FIELD_HEIGHT; row++) {
+            for (uint256 col = 0; col < FIELD_WIDTH; col++) {
                 result[row * FIELD_WIDTH + col] = uint8(room.boardState[row][col]);
             }
         }
@@ -145,7 +182,7 @@ contract CastlediceGame {
     function updateCurrentPlayerMoves(uint roomId) internal {
         Room storage room = rooms[roomId];
         updateRandomValue(roomId);
-        room.currentPlayerMoves = uint8((room.randomParameter % 5) + 1);
+        room.currentPlayerMoves = uint256((room.randomParameter % 5) + 1);
     }
 
     function isGameFinished(uint256 roomId) public view returns (bool) {
@@ -164,11 +201,11 @@ contract CastlediceGame {
         revert("Game is not finished, there is no winner");
     }
 
-    function getCurrentPlayerMovesLeft(uint256 roomId) public view returns (uint8) {
+    function getCurrentPlayerMovesLeft(uint256 roomId) public view returns (uint256) {
         return rooms[roomId].currentPlayerMoves;
     }
 
-    function getCurrentPlayerIndex(uint256 roomId) public view returns (uint8) {
+    function getCurrentPlayerIndex(uint256 roomId) public view returns (uint256) {
         return rooms[roomId].currentPlayerIndex;
     }
     
@@ -182,6 +219,6 @@ enum BoardState {
 }
 
 struct Position {
-    uint8 row;
-    uint8 column;
+    uint256 row;
+    uint256 column;
 }
