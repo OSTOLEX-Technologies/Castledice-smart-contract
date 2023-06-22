@@ -165,7 +165,36 @@ contract CastlediceGame {
         return result;
     }
 
+    function removeRedTails(uint256 roomId) internal {
+        Room storage room = rooms[roomId];
+        bool[10][10] memory isGood;
+        isGood[redPlayerStart.row][redPlayerStart.column] = true;
+        
+        for (uint256 row = redPlayerStart.row; row >= 0; row--) {
+            for (uint256 column = redPlayerStart.column; column >= 0; column--) {
+                if (room.boardState[row][column] == BoardState.RED) {
+                    bool needToRemove = true;
+                    if (row + 1 < FIELD_HEIGHT && isGood[row+1][column]) {
+                        needToRemove = false;
+                    }
+                    if (column + 1 < FIELD_WIDTH && isGood[row][column+1]) {
+                        needToRemove = false;
+                    }
+                    if (column + 1 < FIELD_WIDTH && row + 1 < FIELD_HEIGHT && isGood[row+1][column+1]) {
+                        needToRemove = false;
+                    }
 
+                    if (needToRemove) {
+                        room.boardState[row][column] = BoardState.FREE;
+                    } else {
+                        isGood[row][column] = true;
+                    }
+                }
+            }
+        }
+
+
+    }
 
     function updateRandomValue(uint256 roomId) internal {
         Room storage room = rooms[roomId];
