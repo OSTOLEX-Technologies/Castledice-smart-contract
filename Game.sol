@@ -104,11 +104,20 @@ contract CastlediceGame {
             require(room.currentPlayerMoves >= STANDART_MOVE_COST, "You don`t have enough moves left");
             room.currentPlayerMoves -= STANDART_MOVE_COST;
             room.boardState[row][column] = currentPlayerColor;
-        } else {
+        } 
+        else if (currentCellState == BoardState.TREE) {
+            revert("You cannot move on a tree");
+        }
+        else {
             require(room.currentPlayerMoves >= STRIKE_MOVE_COST, "You don`t have enough moves left");
             room.currentPlayerMoves -= STRIKE_MOVE_COST;
             room.boardState[row][column] = currentPlayerColor;
-            removeTails(roomId, getOppositeColor(currentPlayerColor));
+            if (currentPlayerColor == BoardState.BLUE) {
+                removeRedTails(roomId);
+            }
+            else {
+                removeBlueTails(roomId);
+            }
         }
         if (room.currentPlayerMoves == 0) {
             updateCurrentPlayer(roomId);
@@ -170,8 +179,8 @@ contract CastlediceGame {
         bool[10][10] memory isGood;
         isGood[redPlayerStart.row][redPlayerStart.column] = true;
         
-        for (uint256 row = redPlayerStart.row; row >= 0; row--) {
-            for (uint256 column = redPlayerStart.column; column >= 0; column--) {
+        for (uint256 row = redPlayerStart.row; row >= 0; ) {
+            for (uint256 column = redPlayerStart.column-1; column >= 0; ) {
                 if (room.boardState[row][column] == BoardState.RED) {
                     bool needToRemove = true;
                     if (row + 1 < FIELD_HEIGHT && isGood[row+1][column]) {
@@ -193,7 +202,9 @@ contract CastlediceGame {
                         isGood[row][column] = true;
                     }
                 }
+                if (column > 0) column--;
             }
+            if (row > 0) row--;
         }
     }
 
@@ -203,7 +214,7 @@ contract CastlediceGame {
         isGood[bluePlayerStart.row][bluePlayerStart.column] = true;
         
         for (uint256 row = bluePlayerStart.row; row < FIELD_HEIGHT; row++) {
-            for (uint256 column = bluePlayerStart.column; column < FIELD_WIDTH; column++) {
+            for (uint256 column = bluePlayerStart.column+1; column < FIELD_WIDTH; column++) {
                 if (room.boardState[row][column] == BoardState.BLUE) {
                     bool needToRemove = true;
                     if (row - 1 >= 0 && isGood[row+1][column]) {
