@@ -167,8 +167,8 @@ contract CastlediceGame {
         Room storage room = rooms[roomId];
         uint8[] memory result = new uint8[](FIELD_HEIGHT * FIELD_WIDTH);
         for (uint256 row = 0; row < FIELD_HEIGHT; row++) {
-            for (uint256 col = 0; col < FIELD_WIDTH; col++) {
-                result[row * FIELD_WIDTH + col] = uint8(room.boardState[row][col]);
+            for (uint256 column = 0; column < FIELD_WIDTH; column++) {
+                result[row * FIELD_WIDTH + column] = uint8(room.boardState[row][column]);
             }
         }
         return result;
@@ -217,13 +217,13 @@ contract CastlediceGame {
             for (uint256 column = bluePlayerStart.column+1; column < FIELD_WIDTH; column++) {
                 if (room.boardState[row][column] == BoardState.BLUE) {
                     bool needToRemove = true;
-                    if (row - 1 >= 0 && isGood[row+1][column]) {
+                    if (row - 1 >= 0 && isGood[row-1][column]) {
                         needToRemove = false;
                     }
                     if (column - 1 >= 0 && row - 1 >= 0 && isGood[row-1][column-1]) {
                         needToRemove = false;
                     }
-                    if (column - 1 >= 0 && isGood[row][column+1]) {
+                    if (column - 1 >= 0 && isGood[row][column-1]) {
                         needToRemove = false;
                     }
                     if (column + 1 < FIELD_WIDTH && row - 1 >= 0 && isGood[row-1][column+1]) {
