@@ -29,6 +29,8 @@ contract CastlediceGame {
     }
 
     mapping(uint256 => Room) public rooms;
+    mapping(address => uint256) public playerInRoom;
+
     uint256 public countRooms;
 
     constructor() public {
@@ -65,6 +67,9 @@ contract CastlediceGame {
         updateCurrentPlayerMoves(countRooms);
         generateTrees(countRooms);
 
+        playerInRoom[players[0]] = countRooms;
+        playerInRoom[players[1]] = countRooms;
+
         return countRooms;
     }
 
@@ -100,6 +105,7 @@ contract CastlediceGame {
 
         require(currentCellState != currentPlayerColor, "You cannot make move on your cell");
         validateMove(roomId, row, column);
+
         if (currentCellState == BoardState.FREE) {
             require(room.currentPlayerMoves >= STANDART_MOVE_COST, "You don`t have enough moves left");
             room.currentPlayerMoves -= STANDART_MOVE_COST;
@@ -113,15 +119,22 @@ contract CastlediceGame {
             room.currentPlayerMoves -= STRIKE_MOVE_COST;
             room.boardState[row][column] = currentPlayerColor;
             if (currentPlayerColor == BoardState.BLUE) {
-                removeRedTails(roomId);
+                removeTails(roomId, BoardState.RED);
             }
             else {
-                removeBlueTails(roomId);
+                removeTails(roomId, BoardState.BLUE);
             }
         }
+
         if (room.currentPlayerMoves == 0) {
             updateCurrentPlayer(roomId);
         }
+
+        if (isGameFinished(roomId)) {
+            delete playerInRoom[room.players[0]];
+            delete playerInRoom[room.players[1]];
+        }
+
         return room.currentPlayerMoves;
     }
 
@@ -256,6 +269,10 @@ contract CastlediceGame {
 
     function getCurrentPlayerIndex(uint256 roomId) public view returns (uint256) {
         return rooms[roomId].currentPlayerIndex;
+    }
+
+    function getRoomIdByAddress(address player) external view returns (uint256) {
+        return playerInRoom[player];
     }
     
 }
