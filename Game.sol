@@ -8,7 +8,7 @@ contract CastlediceGame {
     uint256 constant STANDART_MOVE_COST = 1;
     uint256 constant STRIKE_MOVE_COST = 3;
     uint256 constant TREE_RANGE_MIN = 2;
-    uint256 constant TREE_RANGE_MAX = 2;
+    uint256 constant TREE_RANGE_MAX = 7;
     uint256 constant TREES_MIN_AMOUNT = 1;
     uint256 constant TREES_MAX_AMOUNT = 5;
     
@@ -100,7 +100,7 @@ contract CastlediceGame {
 
     function makeMove(uint256 roomId, uint256 row, uint256 column) external onlyActivePlayer(roomId) returns(uint256){
         require(!isGameFinished(roomId), "Game is already finished");
-        
+
         Room storage room = rooms[roomId];
 
         BoardState currentCellState = room.boardState[row][column];
