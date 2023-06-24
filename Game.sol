@@ -204,16 +204,19 @@ contract CastlediceGame {
         while (currentStack > 0) {
             int256 column = stack[--currentStack];
             int256 row = stack[--currentStack];
+            
             for (int256 verticalShift = -1; verticalShift <= 1; verticalShift++) {
-                if (row - verticalShift >= 0 && row + verticalShift < int256(FIELD_HEIGHT)) {
+                if (row + verticalShift >= 0 && row + verticalShift < int256(FIELD_HEIGHT)) {
                     for (int256 horizontalShift = -1; horizontalShift <= 1; horizontalShift++) {
-                        if (column - horizontalShift >= 0 && column + horizontalShift < int256(FIELD_WIDTH)) {
-                            if (room.boardState[uint256(row)][uint256(column)] == colorToRemove &&
-                                !isGood[uint256(row)][uint256(column)]
+                        if (column + horizontalShift >= 0 && column + horizontalShift < int256(FIELD_WIDTH)) {
+                            uint256 currentRow = uint256(row + verticalShift);
+                            uint256 currentColumn = uint256(column + horizontalShift);
+                            if (room.boardState[currentRow][currentColumn] == colorToRemove &&
+                                !isGood[currentRow][currentColumn]
                             ) {
-                                isGood[uint256(row)][uint256(column)] = true;
-                                stack[currentStack++] = uint8(row);
-                                stack[currentStack++] = uint8(column);
+                                isGood[currentRow][currentColumn] = true;
+                                stack[currentStack++] = uint8(currentRow);
+                                stack[currentStack++] = uint8(currentColumn);
                             }
                         }
                     }
@@ -249,7 +252,7 @@ contract CastlediceGame {
 
     function isGameFinished(uint256 roomId) public view returns (bool) {
         Room storage room = rooms[roomId];
-        return room.boardState[0][0] == BoardState.RED || room.boardState[9][9] == BoardState.BLUE;            
+        return room.boardState[0][0] == BoardState.RED || room.boardState[9][9] == BoardState.BLUE;
     }
 
     function getGameWinner(uint256 roomId) public view returns (address) {
@@ -281,7 +284,7 @@ enum BoardState {
     FREE,
     BLUE,
     RED,
-    TREE    
+    TREE
 }
 
 struct Position {
