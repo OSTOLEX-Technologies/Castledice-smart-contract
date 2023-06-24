@@ -54,6 +54,22 @@ contract CastlediceGame {
                 room.boardState[i][j] = BoardState.FREE;
             }
         }
+        //
+        room.boardState[1][1] = BoardState.BLUE;
+        room.boardState[2][2] = BoardState.BLUE;
+        room.boardState[3][3] = BoardState.BLUE;
+        room.boardState[4][4] = BoardState.BLUE;
+        room.boardState[5][5] = BoardState.BLUE;
+        room.boardState[6][6] = BoardState.BLUE;
+        room.boardState[7][6] = BoardState.BLUE;
+        room.boardState[8][6] = BoardState.BLUE;
+        
+        room.boardState[8][8] = BoardState.RED;
+        room.boardState[7][7] = BoardState.RED;
+        room.boardState[6][7] = BoardState.RED;
+        room.boardState[5][7] = BoardState.RED;
+        
+        //
         room.boardState[bluePlayerStart.row][bluePlayerStart.column] = BoardState.BLUE;
         room.boardState[redPlayerStart.row][redPlayerStart.column] = BoardState.RED;
         
@@ -158,7 +174,7 @@ contract CastlediceGame {
                 if (currRow < 0 || currColumn < 0) {
                     continue;
                 }
-                if (currColumn >= int256(FIELD_HEIGHT) || currColumn >= int256(FIELD_WIDTH)) {
+                if (currRow >= int256(FIELD_HEIGHT) || currColumn >= int256(FIELD_WIDTH)) {
                     continue;
                 }
                 uint256 uCurrRow = uint256(currRow);
