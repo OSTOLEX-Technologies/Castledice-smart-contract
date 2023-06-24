@@ -174,67 +174,43 @@ contract CastlediceGame {
         return result;
     }
 
-    function removeRedTails(uint256 roomId) internal {
+    function removeTails(uint256 roomId, BoardState colorToRemove) internal {
+        Position memory playerStartPosition = redPlayerStart;
+        if (colorToRemove == BoardState.BLUE) {
+            playerStartPosition = bluePlayerStart;
+        }
         Room storage room = rooms[roomId];
-        bool[10][10] memory isGood;
-        isGood[redPlayerStart.row][redPlayerStart.column] = true;
+        bool[FIELD_HEIGHT][FIELD_WIDTH] memory isGood;
+        isGood[playerStartPosition.row][playerStartPosition.column] = true;
+        uint8[] memory stack = new uint8[](FIELD_HEIGHT * FIELD_WIDTH * 2);
+        uint256 currentStack = 0;
         
-        for (uint256 row = redPlayerStart.row; row >= 0; ) {
-            for (uint256 column = redPlayerStart.column-1; column >= 0; ) {
-                if (room.boardState[row][column] == BoardState.RED) {
-                    bool needToRemove = true;
-                    if (row + 1 < FIELD_HEIGHT && isGood[row+1][column]) {
-                        needToRemove = false;
-                    }
-                    if (column + 1 < FIELD_WIDTH && row + 1 < FIELD_HEIGHT && isGood[row+1][column+1]) {
-                        needToRemove = false;
-                    }
-                    if (column + 1 < FIELD_WIDTH && isGood[row][column+1]) {
-                        needToRemove = false;
-                    }
-                    if (int256(column) - 1 >= 0 && row + 1 < FIELD_HEIGHT && isGood[row+1][column-1]) {
-                        needToRemove = false;
-                    }
+        stack[currentStack++] = uint8(playerStartPosition.row);
+        stack[currentStack++] = uint8(playerStartPosition.column);
 
-                    if (needToRemove) {
-                        room.boardState[row][column] = BoardState.FREE;
-                    } else {
-                        isGood[row][column] = true;
+        while (currentStack > 0) {
+            int256 column = stack[--currentStack];
+            int256 row = stack[--currentStack];
+            for (int256 verticalShift = -1; verticalShift <= 1; verticalShift++) {
+                if (row - verticalShift >= 0 && row + verticalShift < int256(FIELD_HEIGHT)) {
+                    for (int256 horizontalShift = -1; horizontalShift <= 1; horizontalShift++) {
+                        if (column - horizontalShift >= 0 && column + horizontalShift < int256(FIELD_WIDTH)) {
+                            if (room.boardState[uint256(row)][uint256(column)] == colorToRemove &&
+                                !isGood[uint256(row)][uint256(column)]
+                            ) {
+                                isGood[uint256(row)][uint256(column)] = true;
+                                stack[currentStack++] = uint8(row);
+                                stack[currentStack++] = uint8(column);
+                            }
+                        }
                     }
                 }
-                if (column > 0) column--;
             }
-            if (row > 0) row--;
         }
-    }
-
-    function removeBlueTails(uint256 roomId) internal {
-        Room storage room = rooms[roomId];
-        bool[10][10] memory isGood;
-        isGood[bluePlayerStart.row][bluePlayerStart.column] = true;
-        
-        for (uint256 row = bluePlayerStart.row; row < FIELD_HEIGHT; row++) {
-            for (uint256 column = bluePlayerStart.column+1; column < FIELD_WIDTH; column++) {
-                if (room.boardState[row][column] == BoardState.BLUE) {
-                    bool needToRemove = true;
-                    if (int256(row) - 1 >= 0 && isGood[row-1][column]) {
-                        needToRemove = false;
-                    }
-                    if (int256(column) - 1 >= 0 && row - 1 >= 0 && isGood[row-1][column-1]) {
-                        needToRemove = false;
-                    }
-                    if (int256(column) - 1 >= 0 && isGood[row][column-1]) {
-                        needToRemove = false;
-                    }
-                    if (column + 1 < FIELD_WIDTH && int256(row) - 1 >= 0 && isGood[row-1][column+1]) {
-                        needToRemove = false;
-                    }
-
-                    if (needToRemove) {
-                        room.boardState[row][column] = BoardState.FREE;
-                    } else {
-                        isGood[row][column] = true;
-                    }
+        for (uint256 row = 0; row < FIELD_HEIGHT; row++) {
+            for (uint256 column = 0; column < FIELD_WIDTH; column++) {
+                if (room.boardState[row][column] == colorToRemove && !isGood[row][column]) {
+                    room.boardState[row][column] = BoardState.FREE;
                 }
             }
         }
