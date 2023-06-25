@@ -95,7 +95,8 @@ contract CastlediceGame {
     }
 
     function setRandomNumberInRange(uint8 random, uint256 minValue, uint256 maxValue) internal pure returns(uint8) {
-        return uint8(minValue) + (random % uint8(maxValue));
+        require(maxValue >= minValue, "The uppper bound should be not less than the lower bound");
+        return uint8(minValue) + (random % uint8(maxValue - minValue + 1));
     }
 
     function makeMove(uint256 roomId, uint256 row, uint256 column) external onlyActivePlayer(roomId) returns(uint256){
