@@ -45,6 +45,12 @@ contract CastlediceGame {
         _;
     }
 
+    modifier onlyPlayerInRoom(uint roomId) {
+        Room storage room = rooms[roomId];
+        require(room.players[0] == msg.sender || room.players[1] == msg.sender, "It is not your room");
+        _;
+    }
+
     function createRoom(address[] calldata players) external returns (uint256) {
         countRooms++;
         Room storage room = rooms[countRooms];
@@ -96,6 +102,15 @@ contract CastlediceGame {
 
     function setRandomNumberInRange(uint8 random, uint256 minValue, uint256 maxValue) internal pure returns(uint8) {
         return uint8(minValue) + (random % uint8(maxValue));
+    }
+
+    function getMyIndex(uint256 roomId) external view onlyPlayerInRoom(roomId) returns(uint8) {
+        Room storage room = rooms[roomId];
+        for (uint8 i = 0; i < 2; i++) {
+            if (room.players[i] == msg.sender) {
+                return i;
+            }
+        }
     }
 
     function makeMove(uint256 roomId, uint256 row, uint256 column) external onlyActivePlayer(roomId) returns(uint256){
