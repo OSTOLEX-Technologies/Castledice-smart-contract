@@ -22,7 +22,6 @@ contract CastlediceGame {
     struct Room {
         address[] players;
         uint256 currentPlayerIndex;
-        // mapping(uint256 => mapping(uint256 => BoardState)) boardState;
         BoardState[FIELD_HEIGHT][FIELD_WIDTH] boardState;
         uint256 currentPlayerMoves;
         uint256 randomParameter;
@@ -114,7 +113,7 @@ contract CastlediceGame {
         }
     }
 
-    function makeMove(uint256 roomId, uint256 row, uint256 column) external onlyActivePlayer(roomId) returns(uint256){
+    function makeMove(uint256 roomId, uint256 row, uint256 column) public onlyActivePlayer(roomId) returns(uint256){
         require(!isGameFinished(roomId), "Game is already finished");
 
         Room storage room = rooms[roomId];
@@ -283,6 +282,15 @@ contract CastlediceGame {
             return room.players[0];
         }
         revert("Game is not finished, there is no winner");
+    }
+
+    // moves => [row[0], col[0], row[1], col[1], row[2]...]
+    function makeBatchedMoves(uint256 roomId, uint8[] calldata moves) external {
+        require(moves.length % 2 == 0, "Invalid batch of moves");
+
+        for (uint8 i = 0; i + 1 < moves.length; i += 2) {
+            makeMove(roomId, moves[i], moves[i + 1]);
+        }
     }
 
     function getCurrentPlayerMovesLeft(uint256 roomId) public view returns (uint256) {
